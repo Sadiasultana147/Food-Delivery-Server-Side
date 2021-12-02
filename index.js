@@ -25,6 +25,7 @@ async function run() {
         const deliveryCollection = database.collection("services");
         //OrderCollection
         const orderCollection = database.collection("orders");
+        const usersCollection = database.collection("users"); 0
 
         //GET API ALL SERVICE
 
@@ -87,15 +88,7 @@ async function run() {
             // console.log('load user with id: ', id);
             res.send(user);
         })
-        // // POST API Order
-        app.post('/orders', async (req, res) => {
-            const order = req.body;
 
-            const result = await orderCollection.insertOne(order);
-            console.log(`A document was inserted with the _id: ${result.insertedId}`);
-            res.send(result)
-
-        })
 
 
 
@@ -113,6 +106,67 @@ async function run() {
             res.json(result);
         })
 
+        // // POST API Orders
+        app.post('/orders', async (req, res) => {
+            const order = req.body;
+            order.status = 'pending';
+            console.log(order.status)
+            const result = await orderCollection.insertOne(order);
+            console.log(`A document was inserted with statuse And the _id: ${result.insertedId}`);
+            res.send(result)
+
+        })
+
+        app.put("/updateStatus/:id", (req, res) => {
+            const id = req.params.id;
+            // const updatedStatus = req.body;
+            const filter = { _id: objectId(id) };
+            //console.log(updatedStatus);
+            orderCollection
+                .updateOne(filter, {
+                    $set: { status: "Confirm" },
+                })
+                .then((result) => {
+                    res.json(result);
+                });
+        });
+
+        app.post("/addUserInfo", async (req, res) => {
+            const user = req.body;
+            const result = await usersCollection.insertOne(user);
+            console.log(result);
+            res.json(result);
+        });
+
+        //google sign in user update/put function
+        app.put('/addUserInfo', async (req, res) => {
+            const user = req.body;
+            const filter = { email: user.email };
+            const options = { upsert: true };
+            const updateDoc = { $set: user };
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+            res.json(result);
+        });
+        //  make admin
+
+        app.put("/makeAdmin", async (req, res) => {
+            const user = req.body;
+            const filter = { email: user.email };
+            const updateDoc = { $set: { role: 'admin' } };
+            const result = await usersCollection.updateOne(filter, updateDoc);
+            res.json(result);
+
+        });
+
+        // check admin or not
+        app.get("/checkAdmin/:email", async (req, res) => {
+            const result = await usersCollection
+                .find({ email: req.params.email })
+                .toArray();
+            console.log(result);
+            res.send(result);
+        });
+
 
     } finally {
         //await client.close();
@@ -126,5 +180,5 @@ app.get('/', (req, res) => {
 
 
 app.listen(port, () => {
-    console.log("Runnig food server onnnnnn the  port", port)
+    console.log("Runnig food server on port", port)
 })
